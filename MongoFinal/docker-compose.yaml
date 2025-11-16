@@ -1,0 +1,112 @@
+version: '3.9'
+
+services:
+  # Roteador de Consultas
+  mongos:
+    image: mongo:7.0
+    container_name: mongos
+    hostname: mongos
+    ports:
+      - "27017:27017"
+    command: mongos --configdb rs-config/cfg-1:27017,cfg-2:27017,cfg-3:27017 --bind_ip_all
+    networks: [mongo-net]
+    depends_on: [cfg-1, cfg-2, cfg-3]
+
+  # Replica Set dos Servidores de Configuração
+  cfg-1:
+    image: mongo:7.0
+    container_name: cfg-1
+    hostname: cfg-1
+    command: mongod --configsvr --replSet rs-config --port 27017 --dbpath /data/db
+    volumes: [cfg-1-data:/data/db]
+    networks: [mongo-net]
+
+  cfg-2:
+    image: mongo:7.0
+    container_name: cfg-2
+    hostname: cfg-2
+    command: mongod --configsvr --replSet rs-config --port 27017 --dbpath /data/db
+    volumes: [cfg-2-data:/data/db]
+    networks: [mongo-net]
+
+  cfg-3:
+    image: mongo:7.0
+    container_name: cfg-3
+    hostname: cfg-3
+    command: mongod --configsvr --replSet rs-config --port 27017 --dbpath /data/db
+    volumes: [cfg-3-data:/data/db]
+    networks: [mongo-net]
+
+  # Replica Set do Shard A
+  shard-a-1:
+    image: mongo:7.0
+    container_name: shard-a-1
+    hostname: shard-a-1
+    command: mongod --shardsvr --replSet rs-shard-a --port 27017 --dbpath /data/db
+    volumes: [shard-a-1-data:/data/db]
+    networks: [mongo-net]
+
+  shard-a-2:
+    image: mongo:7.0
+    container_name: shard-a-2
+    hostname: shard-a-2
+    command: mongod --shardsvr --replSet rs-shard-a --port 27017 --dbpath /data/db
+    volumes: [shard-a-2-data:/data/db]
+    networks: [mongo-net]
+
+  shard-a-3:
+    image: mongo:7.0
+    container_name: shard-a-3
+    hostname: shard-a-3
+    command: mongod --shardsvr --replSet rs-shard-a --port 27017 --dbpath /data/db
+    volumes: [shard-a-3-data:/data/db]
+    networks: [mongo-net]
+
+  # Replica Set do Shard B
+  shard-b-1:
+    image: mongo:7.0
+    container_name: shard-b-1
+    hostname: shard-b-1
+    command: mongod --shardsvr --replSet rs-shard-b --port 27017 --dbpath /data/db
+    volumes: [shard-b-1-data:/data/db]
+    networks: [mongo-net]
+
+  shard-b-2:
+    image: mongo:7.0
+    container_name: shard-b-2
+    hostname: shard-b-2
+    command: mongod --shardsvr --replSet rs-shard-b --port 27017 --dbpath /data/db
+    volumes: [shard-b-2-data:/data/db]
+    networks: [mongo-net]
+  
+  shard-b-3:
+    image: mongo:7.0
+    container_name: shard-b-3
+    hostname: shard-b-3
+    command: mongod --shardsvr --replSet rs-shard-b --port 27017 --dbpath /data/db
+    volumes: [shard-b-3-data:/data/db]
+    networks: [mongo-net]
+
+  # Contêiner de Inicialização
+  mongo-init:
+    image: mongo:7.0
+    container_name: mongo-init
+    volumes:
+      - ./init-mongo.sh:/init-mongo.sh
+    entrypoint: [ "bash", "/init-mongo.sh" ]
+    networks: [mongo-net]
+    depends_on: [mongos, cfg-1, cfg-2, cfg-3, shard-a-1, shard-a-2, shard-b-1, shard-b-2]
+
+volumes:
+  cfg-1-data:
+  cfg-2-data:
+  cfg-3-data:
+  shard-a-1-data:
+  shard-a-2-data:
+  shard-a-3-data:
+  shard-b-1-data:
+  shard-b-2-data:
+  shard-b-3-data:
+
+networks:
+  mongo-net:

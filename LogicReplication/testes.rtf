@@ -1,0 +1,49 @@
+-- Acessar publisher
+docker exec -it pg_publisher psql -U postgres -d tcc_db
+
+-- Verificar dados pelo publisher
+SELECT
+    f.id as funcionario_id,
+    f.nome_funcionario,
+    f.salario,
+    d.nome_departamento
+FROM
+    funcionario f
+JOIN
+    departamento d ON f.id_departamento = d.id
+ORDER BY d.id;
+
+-- Sair do publisher
+\q
+
+-- Entrar  nos subscribers
+docker exec -it pg_subscriber psql -U postgres -d tcc_db
+
+
+-- Verificar dados pelo subscriber
+SELECT
+    f.id as funcionario_id,
+    f.nome_funcionario,
+    f.salario,
+    d.nome_departamento
+FROM
+    funcionario f
+JOIN
+    departamento d ON f.id_departamento = d.id
+ORDER BY d.id;
+
+-- Teste 1
+UPDATE funcionario SET salario = salario * 1.10;
+
+-- Teste 2
+BEGIN;
+
+UPDATE funcionario SET salario = 9999.00 WHERE id = 101;
+
+UPDATE funcionario SET salario = salario / 0 WHERE id = 201;
+
+-- Teste 3
+BEGIN;
+UPDATE funcionario SET salario = 5500.00 WHERE id = 102;
+UPDATE funcionario SET salario = 6500.00 WHERE id = 301;
+COMMIT;

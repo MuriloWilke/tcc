@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  publisher:
+    image: postgres:17
+    container_name: pg_publisher
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./init-publisher.sh:/docker-entrypoint-initdb.d/init-publisher.sh
+    networks:
+      - logical-rep-net
+    command: postgres -c wal_level=logical
+
+  subscriber:
+    image: postgres:17
+    container_name: pg_subscriber
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./init-subscriber.sh:/init-subscriber.sh
+    networks:
+      - logical-rep-net
+    depends_on:
+      - publisher
+    command: bash /init-subscriber.sh
+
+networks:
+  logical-rep-net:

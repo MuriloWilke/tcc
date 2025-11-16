@@ -1,0 +1,21 @@
+// Entrar no container
+docker exec -it mongos mongosh
+
+// Entrar no banco
+use('tcc_rh');
+
+// Procurar a tabela
+db.funcionario.find({}, { nome: 1, salario: 1, _id: 1 }).sort({_id: 1});
+
+// Teste 1
+db.funcionario.updateMany({}, { $mul: { salario: NumberDecimal("1.10") } });
+
+CTRL + D
+
+// Teste 2
+docker cp .\scripts\cenario2_rollback.js mongos:/tmp/cenario2_rollback.js
+docker exec mongos mongosh /tmp/cenario2_rollback.js
+
+// Teste 3
+docker cp .\scripts\cenario3_commit.js mongos:/tmp/cenario3_commit.js
+docker exec mongos mongosh /tmp/cenario3_commit.js

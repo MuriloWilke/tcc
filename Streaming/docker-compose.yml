@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  postgres-primary:
+    build: .
+    container_name: postgres-primary
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=pass_replicacao
+      - POSTGRES_DB=tcc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - primary_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tcc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - postgres-net
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c wal_keep_size=1GB
+
+  postgres-standby-1:
+    build: .
+    container_name: postgres-standby-1
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    volumes:
+      - standby1_data:/var/lib/postgresql/data
+    networks:
+      - postgres-net
+    entrypoint: |
+      bash -c '
+        rm -rf /var/lib/postgresql/data/* &&
+        chmod 0700 /var/lib/postgresql/data &&
+        su - postgres -c "PGPASSWORD=pass_replicacao pg_basebackup -h postgres-primary -U replicator -D /var/lib/postgresql/data -P -R --slot=standby1_slot" &&
+        chown -R postgres:postgres /var/lib/postgresql/data &&
+        exec su - postgres -c "/usr/lib/postgresql/17/bin/postgres -D /var/lib/postgresql/data"
+      '
+
+  postgres-standby-2:
+    build: .
+    container_name: postgres-standby-2
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    volumes:
+      - standby2_data:/var/lib/postgresql/data
+    networks:
+      - postgres-net
+    entrypoint: |
+      bash -c '
+        rm -rf /var/lib/postgresql/data/* &&
+        chmod 0700 /var/lib/postgresql/data &&
+        su - postgres -c "PGPASSWORD=pass_replicacao pg_basebackup -h postgres-primary -U replicator -D /var/lib/postgresql/data -P -R --slot=standby2_slot" &&
+        chown -R postgres:postgres /var/lib/postgresql/data &&
+        exec su - postgres -c "/usr/lib/postgresql/17/bin/postgres -D /var/lib/postgresql/data"
+      '
+
+volumes:
+  primary_data:
+  standby1_data:
+  standby2_data:
+
+networks:
+  postgres-net:
